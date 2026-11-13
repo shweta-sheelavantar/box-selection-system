@@ -1,0 +1,250 @@
+{% extends "packaging/base.html" %}
+
+{% block title %}New Order — BoxSelect{% endblock %}
+
+{% block content %}
+
+<!-- Page heading -->
+<div class="mb-4">
+  <h1 class="hero-title">New Order</h1>
+  <p class="hero-sub">Select products and quantities — we'll find the cheapest box that fits.</p>
+</div>
+
+<!-- Empty-state warning -->
+{% if not has_products %}
+<div class="alert-setup d-flex gap-3 align-items-start mb-4" role="alert">
+  <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1" aria-hidden="true"></i>
+  <div>
+    <strong>No products in the database.</strong>
+    The dropdown will be empty until you add products.<br>
+    Run <code>python manage.py seed_data</code> to load sample data, or
+    <a href="/admin/packaging/product/add/" target="_blank" rel="noopener" style="color:inherit;font-weight:600;">
+      add a product via Admin
+    </a>.
+  </div>
+</div>
+{% endif %}
+
+<!-- Two-column layout -->
+<div class="row g-4 align-items-start">
+
+  <!-- Left: order form -->
+  <div class="col-lg-7">
+    <div class="card">
+      <div class="card-header">
+        <i class="bi bi-cart3 me-2 text-muted" aria-hidden="true"></i>Order Items
+      </div>
+      <div class="card-body">
+
+        <form method="post" novalidate id="order-form">
+          {% csrf_token %}
+          {{ formset.management_form }}
+
+          <!-- Form-level / non-form errors -->
+          {% if formset.non_form_errors %}
+          <div class="alert-form-error d-flex gap-2 align-items-start mb-3" role="alert">
+            <i class="bi bi-x-circle-fill flex-shrink-0" aria-hidden="true"></i>
+            <div>
+              {% for error in formset.non_form_errors %}
+                <div>{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
+          <!-- Per-form errors summary (shown at top on re-render) -->
+          {% for form in formset %}
+            {% if form.errors %}
+            <div class="alert-form-error d-flex gap-2 align-items-start mb-2" role="alert">
+              <i class="bi bi-x-circle-fill flex-shrink-0" aria-hidden="true"></i>
+              <div>
+                Row {{ forloop.counter }}:
+                {% for field, errors in form.errors.items %}
+                  {% for e in errors %}{{ e }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                {% endfor %}
+              </div>
+            </div>
+            {% endif %}
+          {% endfor %}
+
+          <!-- Formset rows -->
+          <div id="formset-container">
+            {% for form in formset %}
+            <div class="formset-row">
+              <div class="row g-2 align-items-end">
+
+                <div class="col-7">
+                  <label class="form-label" for="{{ form.product.id_for_label }}">Product</label>
+                  {{ form.product }}
+                  {% for error in form.product.errors %}
+                    <div class="field-error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i>{{ error }}</div>
+                  {% endfor %}
+                </div>
+
+                <div class="col-3">
+                  <label class="form-label" for="{{ form.quantity.id_for_label }}">Qty</label>
+                  {{ form.quantity }}
+                  {% for error in form.quantity.errors %}
+                    <div class="field-error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i>{{ error }}</div>
+                  {% endfor %}
+                </div>
+
+                <div class="col-2 text-end pb-1">
+                  {% if not forloop.first %}
+                  <button type="button"
+                          class="btn btn-sm remove-row"
+                          style="color:var(--danger);border:none;background:none;padding:0.4rem;"
+                          aria-label="Remove this product row"
+                          title="Remove row">
+                    <i class="bi bi-trash3" aria-hidden="true"></i>
+                  </button>
+                  {% endif %}
+                </div>
+
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+
+          <!-- Add row -->
+          <button type="button" id="add-row"
+                  class="btn btn-sm btn-ghost mt-1 mb-4"
+                  aria-label="Add another product row">
+            <i class="bi bi-plus-circle me-1" aria-hidden="true"></i>Add product
+          </button>
+
+          <!-- Submit -->
+          <button type="submit" id="submit-btn" class="btn btn-accent w-100 py-2">
+            <span class="spinner" aria-hidden="true"></span>
+            <span class="btn-label">
+              <i class="bi bi-search me-2" aria-hidden="true"></i>Find Best Box
+            </span>
+          </button>
+
+        </form>
+
+        <!-- Footer links -->
+        <div class="d-flex gap-3 mt-3 justify-content-center" style="font-size:0.8rem;">
+          <a href="{% url 'home' %}" style="color:var(--text-muted)">
+            <i class="bi bi-arrow-left me-1"></i>Back
+          </a>
+          <a href="{% url 'admin:packaging_product_changelist' %}" target="_blank" rel="noopener" style="color:var(--text-muted)">
+            Manage Products
+          </a>
+          <a href="{% url 'admin:packaging_box_changelist' %}" target="_blank" rel="noopener" style="color:var(--text-muted)">
+            Manage Boxes
+          </a>
+        </div>
+
+      </div>
+    </div>
+  </div><!-- /col-lg-7 -->
+
+  <!-- Right: available boxes -->
+  <div class="col-lg-5">
+    <div class="card">
+      <div class="card-header">
+        <i class="bi bi-box-seam me-2 text-muted" aria-hidden="true"></i>Available Boxes
+      </div>
+      <div class="card-body py-1">
+        {% if boxes %}
+          {% for box in boxes %}
+          <div class="box-item">
+            <div>
+              <div class="box-item-name">{{ box.name }}</div>
+              <div class="box-item-meta">
+                {{ box.length }}&times;{{ box.width }}&times;{{ box.height }} cm
+                &nbsp;&middot;&nbsp;max {{ box.max_weight }} kg
+              </div>
+            </div>
+            <div class="box-item-cost">₹{{ box.cost }}</div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <p class="text-center py-3 mb-0" style="color:var(--text-muted);font-size:0.875rem;">
+            No boxes in inventory.
+            <a href="{% url 'admin:packaging_box_changelist' %}" target="_blank">Add boxes</a>.
+          </p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Small hint card -->
+    <div class="card mt-3" style="border-left:3px solid var(--accent) !important;">
+      <div class="card-body py-3 px-4" style="font-size:0.8125rem;color:var(--text-muted);">
+        <i class="bi bi-info-circle me-1" style="color:var(--accent)"></i>
+        Boxes are tested <strong style="color:var(--text-primary);">cheapest-first</strong>.
+        The first box that passes weight and size checks is recommended.
+      </div>
+    </div>
+  </div><!-- /col-lg-5 -->
+
+</div><!-- /row -->
+
+<!-- Empty-form template for JS row cloning -->
+<template id="empty-form-template">
+  <div class="formset-row">
+    <div class="row g-2 align-items-end">
+      <div class="col-7">
+        <label class="form-label">Product</label>
+        {{ formset.empty_form.product }}
+      </div>
+      <div class="col-3">
+        <label class="form-label">Qty</label>
+        {{ formset.empty_form.quantity }}
+      </div>
+      <div class="col-2 text-end pb-1">
+        <button type="button"
+                class="btn btn-sm remove-row"
+                style="color:var(--danger);border:none;background:none;padding:0.4rem;"
+                aria-label="Remove this product row"
+                title="Remove row">
+          <i class="bi bi-trash3" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  const totalFormsInput = document.getElementById('id_form-TOTAL_FORMS');
+  const container       = document.getElementById('formset-container');
+  const addBtn          = document.getElementById('add-row');
+  const emptyTemplate   = document.getElementById('empty-form-template');
+  const submitBtn       = document.getElementById('submit-btn');
+  const form            = document.getElementById('order-form');
+
+  // Add a new product row
+  addBtn.addEventListener('click', function () {
+    const currentTotal = parseInt(totalFormsInput.value, 10);
+    const clone = emptyTemplate.content.cloneNode(true);
+    const html  = clone.firstElementChild.outerHTML
+                    .replaceAll('__prefix__', currentTotal);
+    container.insertAdjacentHTML('beforeend', html);
+    totalFormsInput.value = currentTotal + 1;
+    attachRemoveHandlers();
+  });
+
+  // Remove a product row
+  function attachRemoveHandlers() {
+    document.querySelectorAll('.remove-row').forEach(function (btn) {
+      btn.onclick = function () {
+        btn.closest('.formset-row').remove();
+      };
+    });
+  }
+
+  // Spinner + disable on submit
+  form.addEventListener('submit', function () {
+    submitBtn.classList.add('loading');
+    submitBtn.disabled = true;
+  });
+
+  attachRemoveHandlers();
+})();
+</script>
+{% endblock %}

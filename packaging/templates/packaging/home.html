@@ -1,0 +1,119 @@
+{% extends "packaging/base.html" %}
+
+{% block title %}Home — BoxSelect{% endblock %}
+
+{% block content %}
+
+<!-- Hero -->
+<div class="hero">
+  <div>
+    <h1 class="hero-title">Box Selection Dashboard</h1>
+    <p class="hero-sub">Find the cheapest shipping box for any multi-product order, instantly.</p>
+  </div>
+  <a href="{% url 'create_order' %}" class="btn btn-accent px-4 py-2 flex-shrink-0">
+    <i class="bi bi-plus-lg me-2" aria-hidden="true"></i>New Order
+  </a>
+</div>
+
+<!-- How it works — 3 step cards -->
+<div class="step-cards">
+
+  <div class="step-card">
+    <div class="step-icon"><i class="bi bi-cart3" aria-hidden="true"></i></div>
+    <div class="step-num">Step 1</div>
+    <h6>Select Products</h6>
+    <p>Add one or more products and their quantities to your order.</p>
+  </div>
+
+  <div class="step-card">
+    <div class="step-icon"><i class="bi bi-calculator" aria-hidden="true"></i></div>
+    <div class="step-num">Step 2</div>
+    <h6>Calculate Weight</h6>
+    <p>Total order weight is computed from each product's unit weight × quantity.</p>
+  </div>
+
+  <div class="step-card">
+    <div class="step-icon"><i class="bi bi-box-seam" aria-hidden="true"></i></div>
+    <div class="step-num">Step 3</div>
+    <h6>Get Cheapest Box</h6>
+    <p>The system tests each box cheapest-first for weight capacity and dimensional fit.</p>
+  </div>
+
+</div>
+
+<!-- Recent Orders -->
+<div class="card">
+  <div class="card-header d-flex align-items-center justify-content-between">
+    <span><i class="bi bi-clock-history me-2 text-muted" aria-hidden="true"></i>Recent Orders</span>
+    <a href="{% url 'create_order' %}" class="btn btn-ghost btn-sm">
+      <i class="bi bi-plus me-1"></i>New
+    </a>
+  </div>
+
+  {% if recent %}
+  <div class="card-body p-0">
+    <table class="data-table" role="table" aria-label="Recent orders">
+      <thead>
+        <tr>
+          <th scope="col">Order</th>
+          <th scope="col">Products</th>
+          <th scope="col" class="text-end">Weight</th>
+          <th scope="col">Box</th>
+          <th scope="col">Date</th>
+          <th scope="col"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for order in recent %}
+        <tr>
+          <td data-label="Order">
+            <a href="{% url 'order_result' order.pk %}" class="fw-semibold text-decoration-none" style="color:var(--accent)">
+              #{{ order.pk }}
+            </a>
+          </td>
+          <td data-label="Products" style="color:var(--text-muted); font-size:0.8125rem;">
+            {% for item in order.items.all %}
+              {{ item.quantity }}&times; {{ item.product.name }}{% if not forloop.last %}, {% endif %}
+            {% endfor %}
+          </td>
+          <td data-label="Weight" class="text-end" style="font-variant-numeric:tabular-nums;">
+            {% if order.total_weight %}{{ order.total_weight }} kg{% else %}—{% endif %}
+          </td>
+          <td data-label="Box">
+            {% if order.recommended_box %}
+              <span class="badge-success">{{ order.recommended_box.name }}</span>
+            {% else %}
+              <span class="badge-danger">None</span>
+            {% endif %}
+          </td>
+          <td data-label="Date" style="color:var(--text-muted); font-size:0.8125rem;">
+            {{ order.created_at|timesince }} ago
+          </td>
+          <td class="text-end">
+            <a href="{% url 'order_result' order.pk %}" class="btn btn-ghost btn-sm">
+              View <i class="bi bi-arrow-right ms-1" aria-hidden="true"></i>
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% else %}
+
+  <div class="card-body">
+    <div class="empty-state">
+      <div class="empty-icon"><i class="bi bi-inbox" aria-hidden="true"></i></div>
+      <h5>No orders yet</h5>
+      <p>Create your first order to see box recommendations here.</p>
+      <a href="{% url 'create_order' %}" class="btn btn-accent px-4">
+        <i class="bi bi-plus-lg me-2"></i>Create First Order
+      </a>
+    </div>
+  </div>
+
+  {% endif %}
+</div>
+
+{% endblock %}
