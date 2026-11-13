@@ -221,4 +221,6 @@ box_selection_system/
             ├── home.html            # Landing page, recent orders table
             ├── create_order.html    # Order form (formset + JS add/remove rows)
             └── order_result.html    # Recommendation result page
-```
+```<img width="1450" height="762" alt="image" src="https://github.com/user-attachments/assets/4f6d7037-333b-46f9-8169-b0a7af63a7a3" />
+![Uploading image.png…]()
+
