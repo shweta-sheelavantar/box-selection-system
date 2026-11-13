@@ -1,231 +1,260 @@
 # AI-Assisted Box Selection System
 
-A Django web application that recommends the **cheapest shipping box** for a customer order containing multiple products. Given each product's dimensions and weight, it finds the lowest-cost box that physically fits every item and can carry the total weight.
+A Django-based web application that recommends the most suitable and lowest-cost shipping box for a customer order.
 
-> "AI-assisted" refers to how the project was *built* (AI coding tools, documented in [AI_USAGE.md](AI_USAGE.md)). There is no machine-learning model inside the application.
+The system considers product dimensions, weight, quantity, box dimensions and maximum weight capacity to find a suitable shipping box.
 
-## Screenshots
-
-![Home page](docs/screenshots/home.png)
-*Home page with recent orders.*
-
-![Create order](docs/screenshots/create_order.png)
-*Order form with dynamic product rows.*
-
-![Result page](docs/screenshots/result.png)
-*Recommendation result.*
+**Note:** AI-assisted refers to the development process using AI coding tools. The application itself does not use a machine learning model.
 
 ## Features
 
-- Multiple products per order, with a quantity for each
-- Total weight calculation
-- Weight-capacity check per box
-- Dimensional fit check that tries all 6 axis-aligned orientations of each item
-- Cheapest suitable box recommended, or a clear "no box found" message with reasons
-- Dynamic order form (add/remove product rows) with server-side validation
-- Django admin for managing boxes, products and orders
-- Seed command for sample data
-- Automated tests and a GitHub Actions workflow
+- Add and manage products.
+- Add and manage shipping boxes.
+- Create orders with multiple products.
+- Specify product quantities.
+- Calculate the total order weight.
+- Check box dimensions and weight capacity.
+- Try different product orientations to improve fitting.
+- Recommend the cheapest suitable box.
+- Display a message when no suitable box is available.
+- Manage products, boxes and orders through Django Admin.
+- Automated test cases for important functionality.
 
-## Tech Stack
+## Technologies Used
 
-| Technology | Version | Purpose |
-|---|---|---|
-| Python | 3.12 | Language |
-| Django | 6.1.3 | Web framework |
-| SQLite | built-in | Database |
-| Django ORM | – | All database access |
-| Bootstrap | 5.3.3 (CDN) | UI styling |
-| Django `TestCase` | – | Automated tests |
+| Technology | Purpose |
+|---|---|
+| Python 3.12 | Programming language |
+| Django 6.1.3 | Backend framework |
+| SQLite | Database |
+| HTML and CSS | Frontend |
+| Bootstrap 5.3.3 | UI design |
+| Django ORM | Database operations |
+| Django TestCase | Automated testing |
+| Git and GitHub | Version control |
 
-## Setup
+## Project Setup
 
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/YOUR-USERNAME/YOUR-REPO.git
-cd YOUR-REPO
+git clone https://github.com/shweta-sheelavantar/box-selection-system.git
+cd box-selection-system
 ```
 
-### 2. Create and activate a virtual environment
+### 2. Create a virtual environment
 
 ```bash
 python -m venv venv
+```
 
-# Windows
-venv\Scripts\activate
+Activate it on Windows:
 
-# macOS / Linux
+```powershell
+.\venv\Scripts\Activate.ps1
+```
+
+For macOS/Linux:
+
+```bash
 source venv/bin/activate
 ```
 
 ### 3. Install dependencies
 
 ```bash
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
-### 4. Apply migrations
+### 4. Apply database migrations
 
 ```bash
 python manage.py migrate
 ```
 
-### 5. Seed sample data (required)
-
-`db.sqlite3` is not committed, so a fresh clone has no boxes or products and the product dropdown will be empty until you seed.
+### 5. Add sample data
 
 ```bash
 python manage.py seed_data
 ```
 
-This loads 3 boxes and 4 products. It uses `get_or_create`, so it is safe to run more than once.
+This command adds sample products and shipping boxes to the database. It can be run multiple times without creating duplicate sample records.
 
-### 6. Create an admin user
+### 6. Create an admin account
 
 ```bash
 python manage.py createsuperuser
 ```
 
-### 7. Run the server
+### 7. Start the development server
 
 ```bash
 python manage.py runserver
 ```
 
-| URL | Page |
-|---|---|
-| http://127.0.0.1:8000/ | Home, recent orders |
-| http://127.0.0.1:8000/order/ | Create a new order |
-| http://127.0.0.1:8000/order/`<pk>`/result/ | Recommendation for an order |
-| http://127.0.0.1:8000/admin/ | Admin panel |
+Open the application:
 
-### 8. Run the tests
+http://127.0.0.1:8000/
+
+## Application URLs
+
+| URL | Description |
+|---|---|
+| `/` | Home page and recent orders |
+| `/order/` | Create a new order |
+| `/order/<pk>/result/` | View box recommendation |
+| `/admin/` | Django administration |
+
+## Sample Data
+
+The following sample data is used for testing.
+
+### Shipping Boxes
+
+| Box | Dimensions (L × W × H) | Max Weight | Cost |
+|---|---|---|---|
+| Small | 20 × 15 × 10 cm | 5 kg | ₹1.50 |
+| Medium | 40 × 30 × 20 cm | 15 kg | ₹3.00 |
+| Large | 60 × 40 × 40 cm | 30 kg | ₹5.50 |
+
+### Products
+
+| Product | Dimensions (L × W × H) | Weight |
+|---|---|---|
+| Phone Case | 16 × 8 × 2 cm | 0.2 kg |
+| Book | 24 × 17 × 4 cm | 0.8 kg |
+| Shoes | 32 × 22 × 12 cm | 1.2 kg |
+| Laptop | 36 × 25 × 3 cm | 2.0 kg |
+
+## Box Selection Algorithm
+
+The box selection logic is implemented in:
+
+`packaging/services.py`
+
+The main function is:
+
+`select_box_for_order(order)`
+
+The algorithm follows these steps:
+
+1. Collect all products and their quantities from the order.
+2. Calculate the total weight of the order.
+3. Sort available boxes by cost, from lowest to highest.
+4. Check whether the total weight is within the box's maximum capacity.
+5. Try different orientations of each product to check whether it fits.
+6. Use a single-row stacking approach along the length of the box.
+7. Select the cheapest box that passes both dimension and weight checks.
+8. If no box is suitable, display a message explaining why the boxes were rejected.
+
+### Example
+
+Suppose a customer orders two phone cases.
+
+- Total weight: 0.4 kg.
+- Each phone case requires 16 cm of box length in the selected orientation.
+- Total required length: 32 cm.
+- Small box length: 20 cm.
+- Medium box length: 40 cm.
+
+The Small box cannot accommodate both products using this packing strategy.
+
+Therefore, the Medium box is recommended at a cost of ₹3.00.
+
+## Testing
+
+The project uses Django TestCase to test application functionality.
+
+The test cases cover:
+
+- Product and box models.
+- Weight capacity checking.
+- Product dimension checking.
+- Product rotation.
+- Multiple products and quantities.
+- Empty orders.
+- No suitable box scenarios.
+- Cheapest suitable box selection.
+- Order creation and result pages.
+- Sample data management.
+
+Run the tests using:
 
 ```bash
 python manage.py test packaging --verbosity=2
 ```
 
-All tests should pass. Test output is saved in [`test_output.txt`](test_output.txt), and CI runs the same command on every push (see Evidence below).
-
-## Seed Data
-
-| Box | L × W × H (cm) | Max weight (kg) | Cost |
-|---|---|---|---|
-| Small | 20 × 15 × 10 | 5 | 1.50 |
-| Medium | 40 × 30 × 20 | 15 | 3.00 |
-| Large | 60 × 40 × 40 | 30 | 5.50 |
-
-| Product | L × W × H (cm) | Weight (kg) |
-|---|---|---|
-| Phone Case | 16 × 8 × 2 | 0.2 |
-| Book | 24 × 17 × 4 | 0.8 |
-| Shoes | 32 × 22 × 12 | 1.2 |
-| Laptop | 36 × 25 × 3 | 2.0 |
-
-(Source of truth: `packaging/management/commands/seed_data.py`. Keep this table in sync with it.)
-
-## How the Algorithm Works
-
-The logic is in `packaging/services.py`, function `select_box_for_order(order)`.
-
-1. **Collect items.** Each `OrderItem` is expanded into individual units (quantity 3 becomes 3 units).
-2. **Total weight.** Sum of `product.weight × quantity` across all lines.
-3. **Evaluate boxes cheapest first.** `Box.Meta.ordering` sorts by cost ascending, so the first box that passes is the cheapest valid one. Each box gets two checks:
-   - **Weight check:** reject the box if `total_weight > box.max_weight`.
-   - **Fit check (single-row stacking):** for each unit, try all 6 orientations (`itertools.permutations` of its three dimensions). Keep orientations whose other two dimensions fit the box's width and height, and choose the one using the least length. Stack all units end to end:
-
-     ```
-     total_length_used = sum(chosen length of each unit)
-     fits = total_length_used <= box.length
-     ```
-4. **Return the first box that passes both checks.** The box, total weight and a text explanation are saved on the `Order`.
-5. **No box found.** `recommended_box` is saved as `None`, and the reasoning explains why each box was rejected.
-
-### Worked examples (using the seed data)
-
-**2 × Phone Case → Medium box.** Total weight 0.4 kg. In the Small box each case needs at least 16 cm of length, so two need 32 cm, which is more than 20 cm. The Medium box has 40 cm of length, so 32 cm fits. Cost 3.00.
-
-**1 × Phone Case → Small box.** Total weight 0.2 kg. One case uses 16 cm of the Small box's 20 cm length. Cost 1.50.
-
-**50 × Laptop → no box.** Total weight 100 kg exceeds every box's capacity, so the result page shows "No suitable box" with the reasons.
+The actual test execution output is available in `TEST_OUTPUT.md`.
 
 ## Known Limitations
 
-The fit check is a **heuristic**, not an optimal 3D bin-packing solver.
-
-- **Conservative by design.** Items are placed in one row along the box length only. The algorithm can wrongly report "no box fits" for an order that could be packed by layering or placing items side by side. It cannot approve a packing that doesn't physically fit, because it only accepts when the stacked lengths fit.
-- **No shared space.** Items are not modelled as nesting in gaps beside larger items.
-- **Optimal packing is NP-hard.** Exact solutions need exhaustive search or advanced heuristics. For typical e-commerce orders with a few items, a simple conservative check is fast and predictable.
-- **Rigid items only.** No padding, rounding or tolerance is applied, and items are treated as axis-aligned boxes.
-
-## Design Decisions
-
-- `DecimalField` for dimensions, weight and cost, so there are no floating-point rounding surprises.
-- `Order.recommended_box` uses `on_delete=SET_NULL`, so deleting a box keeps historical orders.
-- `OrderItem` is a custom through-model so each order line stores a quantity.
-- POST/Redirect/GET after submitting an order, so refreshing the result page never resubmits the form.
-- Service-layer logic (`services.py`) is separate from views, so the algorithm is easy to test.
+- The current algorithm uses a single-row stacking approach.
+- Products are placed along the length of the box.
+- It does not support complex 3D packing or placing products side by side.
+- It does not consider protective packaging or padding.
+- It uses a heuristic approach rather than an optimal 3D bin-packing algorithm.
 
 ## Project Structure
 
-```
-.
+```text
+box-selection-system/
+│
+├── box_selection/
+│   ├── settings.py
+│   ├── urls.py
+│   └── ...
+│
+├── packaging/
+│   ├── migrations/
+│   ├── management/
+│   │   └── commands/
+│   │       └── seed_data.py
+│   ├── templates/
+│   ├── static/
+│   ├── models.py
+│   ├── views.py
+│   ├── forms.py
+│   ├── services.py
+│   ├── admin.py
+│   ├── urls.py
+│   └── tests.py
+│
+├── docs/
+│   └── chat_transcript.pdf
+│
+├── .github/
+│   └── workflows/
+│       └── tests.yml
+│
 ├── manage.py
 ├── requirements.txt
 ├── README.md
 ├── AI_USAGE.md
-├── test_output.txt
-├── .gitignore
-├── .github/workflows/tests.yml        # CI: runs the test suite
-├── box_selection/                     # Project config
-│   ├── settings.py
-│   ├── urls.py
-│   ├── wsgi.py
-│   └── asgi.py
-└── packaging/                         # Main app
-    ├── models.py                      # Box, Product, Order, OrderItem
-    ├── services.py                    # Box selection algorithm
-    ├── views.py                       # home, create_order, order_result
-    ├── forms.py                       # OrderItemForm (used in a formset)
-    ├── urls.py
-    ├── admin.py
-    ├── tests.py
-    ├── migrations/
-    ├── management/commands/seed_data.py
-    ├── static/packaging/style.css     # (if present after the UI redesign)
-    └── templates/packaging/
-        ├── base.html
-        ├── home.html
-        ├── create_order.html
-        └── order_result.html
+├── LEARNINGS.md
+├── TEST_CASES.md
+└── TEST_OUTPUT.md
 ```
 
-## Testing
+## AI Usage
 
-Tests use Django's `TestCase`, so each test runs in a rolled-back transaction against a temporary test database and never touches `db.sqlite3`. Coverage:
+AI tools were used during development for understanding requirements, discussing implementation approaches, debugging and improving code.
 
-- Models: `__str__`, `volume()`, default ordering, `line_weight()`
-- Service: example order, weight too heavy, dimension too large, rotation, quantity multiplication, empty order, no inventory, cheapest box chosen, result persisted
-- Views: home, create order (GET, valid POST, invalid POST, empty-state warning), order result (including 404)
-- `seed_data` command: creates rows, idempotent
+Details of the tools, prompts, accepted suggestions, rejected suggestions and verification steps are documented in [AI_USAGE.md](AI_USAGE.md).
 
-> Passing tests did not initially mean a usable app: the tests created their own data, while the real database was unseeded and the dropdown was empty. That is why `seed_data` exists and why setup step 5 is required. See [AI_USAGE.md](AI_USAGE.md).
+## Learning Outcomes
 
-## Evidence and Submission Files
+During this assignment, I revised Python and Django concepts and applied them in a practical project.
 
-| Item | Link |
-|---|---|
-| GitHub Actions test run | `PASTE-ACTIONS-RUN-URL` |
-| Test run output | [test_output.txt](test_output.txt) |
-| AI usage log | [AI_USAGE.md](AI_USAGE.md) |
-| Chat transcript | [docs/chat_transcript.md](docs/chat_transcript.md) |
-| What I learned | [LEARNINGS.md](LEARNINGS.md) |
+I also learned about Django database models, relationships, form handling, business logic, testing and debugging.
 
-## What I Learned
+My detailed learning experience is documented in [LEARNINGS.md](LEARNINGS.md).
 
-I revised Python basics and OOP concepts.
-I revised Django models, views, URLs and templates.
-I understood how Django connects with a database.
-I practised creating a project and Django application.
-I learned how to test and debug errors.
+## Assignment Deliverables
+
+- GitHub Repository: [Box Selection System](https://github.com/shweta-sheelavantar/box-selection-system)
+- [AI Usage Documentation](AI_USAGE.md)
+- [Learning Outcomes](LEARNINGS.md)
+- [Test Cases](TEST_CASES.md)
+- [Test Output](TEST_OUTPUT.md)
+- Chat Transcript: `docs/chat_transcript.pdf`
+
